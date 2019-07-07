@@ -9,7 +9,17 @@
 #define SOURCE_CARROT_ADC_CONTROL_HPP_
 
 
-void check_adc1_task(void const *argument);
+void init_adc(void);
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void check_adc1_task(void *argument);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SOURCE_CARROT_ADC_CONTROL_HPP_ */

@@ -11,7 +11,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 void cpploop(void);
+void init_carrot(void);
+
 #ifdef __cplusplus
 };
 #endif

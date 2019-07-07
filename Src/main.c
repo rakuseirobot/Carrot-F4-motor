@@ -24,7 +24,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "source/carrot_adc_control.hpp"
+#include "source/carrot_adc_control.hpp"
+#include "source/carrot_wrapper.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -144,6 +145,7 @@ int main(void)
   MX_UART8_Init();
   MX_I2C3_Init();
   /* USER CODE BEGIN 2 */
+  init_carrot();
 
   /* USER CODE END 2 */
 
