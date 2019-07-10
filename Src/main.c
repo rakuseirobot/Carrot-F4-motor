@@ -26,6 +26,8 @@
 /* USER CODE BEGIN Includes */
 #include "source/carrot_adc_control.hpp"
 #include "source/carrot_wrapper.hpp"
+#include "source/neopixel.hpp"
+#include "source/interrupt.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +60,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim13;
 
 UART_HandleTypeDef huart8;
 UART_HandleTypeDef huart1;
@@ -90,6 +93,7 @@ static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_UART8_Init(void);
 static void MX_I2C3_Init(void);
+static void MX_TIM13_Init(void);
 void StartDefaultTask(void *argument); // for v2
 extern void check_adc1_task(void *argument); // for v2
 
@@ -144,6 +148,7 @@ int main(void)
   MX_TIM4_Init();
   MX_UART8_Init();
   MX_I2C3_Init();
+  MX_TIM13_Init();
   /* USER CODE BEGIN 2 */
   init_carrot();
 
@@ -289,7 +294,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
   */
-  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Channel = ADC_CHANNEL_3;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -493,9 +498,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
+  htim1.Init.Prescaler = 1680;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 0;
+  htim1.Init.Period = 220;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -667,9 +672,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 0;
+  htim4.Init.Prescaler = 65535;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 0;
+  htim4.Init.Period = 2;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
@@ -698,6 +703,37 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
+  * @brief TIM13 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM13_Init(void)
+{
+
+  /* USER CODE BEGIN TIM13_Init 0 */
+
+  /* USER CODE END TIM13_Init 0 */
+
+  /* USER CODE BEGIN TIM13_Init 1 */
+
+  /* USER CODE END TIM13_Init 1 */
+  htim13.Instance = TIM13;
+  htim13.Init.Prescaler = 50249;
+  htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim13.Init.Period = 0;
+  htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim13.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM13_Init 2 */
+
+  /* USER CODE END TIM13_Init 2 */
 
 }
 
@@ -833,11 +869,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, FET1_Pin|FET2_Pin|FET3_Pin|FET4_Pin 
-                          |FET5_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, FET8_Pin|FET7_Pin|FET6_Pin|FET5_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, FET6_Pin|FET7_Pin|FET8_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(FET4_GPIO_Port, FET4_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, FET3_Pin|FET2_Pin|FET1_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, USB_OTG_HS_VBUS_Pin|HUMAN1_Pin|HUMAN2_Pin|HUMAN3_Pin 
@@ -847,17 +885,17 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PING_Pin|RS_SIG2B8_Pin|RS_SIG1B9_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : FET1_Pin FET2_Pin FET3_Pin FET4_Pin 
-                           FET5_Pin */
-  GPIO_InitStruct.Pin = FET1_Pin|FET2_Pin|FET3_Pin|FET4_Pin 
-                          |FET5_Pin;
+  /*Configure GPIO pins : FET8_Pin FET7_Pin FET6_Pin FET5_Pin 
+                           FET4_Pin */
+  GPIO_InitStruct.Pin = FET8_Pin|FET7_Pin|FET6_Pin|FET5_Pin 
+                          |FET4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : FET6_Pin FET7_Pin FET8_Pin */
-  GPIO_InitStruct.Pin = FET6_Pin|FET7_Pin|FET8_Pin;
+  /*Configure GPIO pins : FET3_Pin FET2_Pin FET1_Pin */
+  GPIO_InitStruct.Pin = FET3_Pin|FET2_Pin|FET1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -937,6 +975,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
+  _HAL_TIM_PeriodElapsedCallback(htim);
 
   /* USER CODE END Callback 1 */
 }

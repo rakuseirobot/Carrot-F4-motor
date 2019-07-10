@@ -60,22 +60,22 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define FET1_Pin GPIO_PIN_2
-#define FET1_GPIO_Port GPIOE
-#define FET2_Pin GPIO_PIN_3
-#define FET2_GPIO_Port GPIOE
-#define FET3_Pin GPIO_PIN_4
-#define FET3_GPIO_Port GPIOE
-#define FET4_Pin GPIO_PIN_5
-#define FET4_GPIO_Port GPIOE
-#define FET5_Pin GPIO_PIN_6
+#define FET8_Pin GPIO_PIN_2
+#define FET8_GPIO_Port GPIOE
+#define FET7_Pin GPIO_PIN_3
+#define FET7_GPIO_Port GPIOE
+#define FET6_Pin GPIO_PIN_4
+#define FET6_GPIO_Port GPIOE
+#define FET5_Pin GPIO_PIN_5
 #define FET5_GPIO_Port GPIOE
-#define FET6_Pin GPIO_PIN_13
-#define FET6_GPIO_Port GPIOC
-#define FET7_Pin GPIO_PIN_14
-#define FET7_GPIO_Port GPIOC
-#define FET8_Pin GPIO_PIN_15
-#define FET8_GPIO_Port GPIOC
+#define FET4_Pin GPIO_PIN_6
+#define FET4_GPIO_Port GPIOE
+#define FET3_Pin GPIO_PIN_13
+#define FET3_GPIO_Port GPIOC
+#define FET2_Pin GPIO_PIN_14
+#define FET2_GPIO_Port GPIOC
+#define FET1_Pin GPIO_PIN_15
+#define FET1_GPIO_Port GPIOC
 #define EMERGENCY_Pin GPIO_PIN_0
 #define EMERGENCY_GPIO_Port GPIOC
 #define ADC4_Pin GPIO_PIN_2
