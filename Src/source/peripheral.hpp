@@ -9,8 +9,9 @@
 #define SOURCE_PERIPHERAL_HPP_
 
 #include <stm32f4xx_hal.h>
-#include <cmsis_os.h>
+#include "../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h"
 #include "uart_control.hpp"
+#include "led_control.hpp"
 
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc3;
@@ -26,6 +27,7 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
+extern TIM_HandleTypeDef htim10;
 extern TIM_HandleTypeDef htim13;
 
 extern UART_HandleTypeDef huart8;
@@ -37,5 +39,9 @@ extern osThreadId_t defaultTaskHandle;
 
 extern uart serial;
 
+extern int16_t bufferRx;
+
+extern bool LiPo_warning;
+extern float LiPo_boltage;
 
 #endif /* SOURCE_PERIPHERAL_HPP_ */

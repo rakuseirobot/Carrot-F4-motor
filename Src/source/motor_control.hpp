@@ -18,7 +18,12 @@
 
 #ifdef __cplusplus
 
-
+enum{
+	motor_x_data=1,
+	motor_y_data=2,
+	motor_turnspeed_data=3,
+	motor_bb_data=4
+};
 
 typedef struct{
 	float vx;
@@ -62,6 +67,18 @@ namespace motor{
 	void move_angle(float,int16_t);
 	void brake(void);
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void motor_task(void *argument);
+
+void raspi_uart_func(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

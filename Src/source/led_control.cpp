@@ -8,16 +8,20 @@
 
 #include "main.h"
 #include "led_control.hpp"
+#include "peripheral.hpp"
+extern int16_t ff;
 
 neopixel::neopixel(GPIO_TypeDef* mgpio, uint16_t mpin, uint16_t num){
 	gpio = mgpio;
 	pin = mpin;
 	led_num = num;
-	for (uint8_t i=0; i<3; i++){
-		data.push(0x00); //RESET
-	}
-	for (uint8_t i=0; i<num*3; i++){
+	for (uint8_t i=0; i<num; i++){
 		data.push(0x00); //RGB all Zero
+		data.push(0x00); //RGB all Zero
+		data.push(0x00); //RGB all Zero
+		led_data[i][0]=0x00;
+		led_data[i][1]=0x00;
+		led_data[i][2]=0x00;
 	}
 	return;
 }
@@ -47,10 +51,23 @@ void neopixel::send_bit(uint8_t bit){
 	return;
 }
 void neopixel::int_act(void){
+	ff=ff+1;
 	if(data.empty()==true){
-		HAL_TIM_Base_Start_IT(&htim13);//Finish Timer Stop
+		flag_byte=0;flag_bits=0;
+		HAL_TIM_Base_Stop_IT(&htim10);//Finish Timer Stop
+		return;
 	}
 	switch(flag_byte){
+	case 0:
+		if(flag_bits>=10){
+			flag_byte++;
+			flag_bits=1;
+		}
+		else{
+			flag_bits++;
+		}
+		HAL_GPIO_WritePin(gpio, pin, GPIO_PIN_RESET);
+		break;
 	case 1:
 		send_bit((data.front()&0b10000000)>>7);
 		break;
@@ -78,42 +95,31 @@ void neopixel::int_act(void){
 	default:
 		break;
 	}
+	HAL_TIM_Base_Start_IT(&htim10);
 	return;
 }
 
 void neopixel::set_all_color(uint8_t red,uint8_t green,uint8_t blue){
-	while(!data.empty()){
-		data.pop();
-	}
-	for (uint8_t i=0; i<3; i++){
-		data.push(0x00); //RESET
-	}
 	for(uint16_t i=0;i<led_num;i++){
-		data.push(green);
-		data.push(red);
-		data.push(blue);
+		led_data[i][0]=green;
+		led_data[i][1]=red;
+		led_data[i][2]=blue;
 	}
 	return;
 }
 
 void neopixel::update(void){
-	if(data.empty()==true){
-		return;
+	while(!data.empty()){
+			data.pop();
 	}
-	while(!(data.size()==(led_num*3)+3)){
-		data.push(0x00);
+	for(uint16_t i=0;i<led_num;i++){
+		data.push(led_data[i][0]);
+		data.push(led_data[i][1]);
+		data.push(led_data[i][2]);
 	}
 	//FreeRTOS Task suspend
-	HAL_TIM_Base_Start_IT(&htim13);//Timer Start
+	HAL_TIM_Base_Start_IT(&htim10);//Timer Start
 }
 
-neopixel front(FET4_GPIO_Port,FET4_Pin,50);
-
-
-void led_control_int_func(TIM_HandleTypeDef *htim){
-	if (htim == &htim13){
-		front.int_act();
-	}
-}
 
 

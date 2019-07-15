@@ -31,7 +31,13 @@ void uart::string(const char *s){
 }
 
 void uart::putfloat(float data){//float�^(-����)
-	uart::putint(data);
+	if(data<0&&data>-1){
+		uart::string("-0");
+		data*=-1;
+	}
+	else{
+		uart::putint(data);
+	}
 	uart::string(".");
 	data=fmodf(data,1);
 	data*=10;

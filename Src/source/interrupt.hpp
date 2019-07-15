@@ -13,6 +13,7 @@
 extern "C" {
 #endif
 void _HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+
 #ifdef __cplusplus
 };
 #endif

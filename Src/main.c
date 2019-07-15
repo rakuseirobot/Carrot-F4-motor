@@ -26,7 +26,6 @@
 /* USER CODE BEGIN Includes */
 #include "source/carrot_adc_control.hpp"
 #include "source/carrot_wrapper.hpp"
-#include "source/neopixel.hpp"
 #include "source/interrupt.hpp"
 /* USER CODE END Includes */
 
@@ -60,6 +59,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim10;
 TIM_HandleTypeDef htim13;
 
 UART_HandleTypeDef huart8;
@@ -73,7 +73,12 @@ osStaticThreadDef_t defaultTaskControlBlock;
 osThreadId_t adc1Handle;
 uint32_t adc1Buffer[ 1024 ];
 osStaticThreadDef_t adc1ControlBlock;
+osThreadId_t motorHandle;
+uint32_t motorBuffer[ 1024 ];
+osStaticThreadDef_t motorControlBlock;
 /* USER CODE BEGIN PV */
+
+
 
 /* USER CODE END PV */
 
@@ -94,8 +99,10 @@ static void MX_TIM4_Init(void);
 static void MX_UART8_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM13_Init(void);
+static void MX_TIM10_Init(void);
 void StartDefaultTask(void *argument); // for v2
 extern void check_adc1_task(void *argument); // for v2
+extern void motor_task(void *argument); // for v2
 
 /* USER CODE BEGIN PFP */
 
@@ -103,6 +110,12 @@ extern void check_adc1_task(void *argument); // for v2
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+     if(UartHandle->Instance==UART8){
+    	 raspi_uart_func();
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -149,8 +162,11 @@ int main(void)
   MX_UART8_Init();
   MX_I2C3_Init();
   MX_TIM13_Init();
+  MX_TIM10_Init();
   /* USER CODE BEGIN 2 */
   init_carrot();
+
+
 
   /* USER CODE END 2 */
 
@@ -180,7 +196,7 @@ int main(void)
     .stack_size = sizeof(defaultTaskBuffer),
     .cb_mem = &defaultTaskControlBlock,
     .cb_size = sizeof(defaultTaskControlBlock),
-    .priority = (osPriority_t) osPriorityLow3,
+    .priority = (osPriority_t) osPriorityLow,
   };
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
@@ -194,6 +210,17 @@ int main(void)
     .priority = (osPriority_t) osPriorityLow,
   };
   adc1Handle = osThreadNew(check_adc1_task, NULL, &adc1_attributes);
+
+  /* definition and creation of motor */
+  const osThreadAttr_t motor_attributes = {
+    .name = "motor",
+    .stack_mem = &motorBuffer[0],
+    .stack_size = sizeof(motorBuffer),
+    .cb_mem = &motorControlBlock,
+    .cb_size = sizeof(motorControlBlock),
+    .priority = (osPriority_t) osPriorityLow,
+  };
+  motorHandle = osThreadNew(motor_task, NULL, &motor_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -279,7 +306,7 @@ static void MX_ADC1_Init(void)
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ScanConvMode = ENABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
@@ -707,6 +734,37 @@ static void MX_TIM4_Init(void)
 }
 
 /**
+  * @brief TIM10 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM10_Init(void)
+{
+
+  /* USER CODE BEGIN TIM10_Init 0 */
+
+  /* USER CODE END TIM10_Init 0 */
+
+  /* USER CODE BEGIN TIM10_Init 1 */
+
+  /* USER CODE END TIM10_Init 1 */
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 0;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 1;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM10_Init 2 */
+
+  /* USER CODE END TIM10_Init 2 */
+
+}
+
+/**
   * @brief TIM13 Initialization Function
   * @param None
   * @retval None
@@ -722,9 +780,9 @@ static void MX_TIM13_Init(void)
 
   /* USER CODE END TIM13_Init 1 */
   htim13.Instance = TIM13;
-  htim13.Init.Prescaler = 50249;
+  htim13.Init.Prescaler = 0;
   htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim13.Init.Period = 0;
+  htim13.Init.Period = 1;
   htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim13.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
@@ -753,7 +811,7 @@ static void MX_UART8_Init(void)
 
   /* USER CODE END UART8_Init 1 */
   huart8.Instance = UART8;
-  huart8.Init.BaudRate = 115200;
+  huart8.Init.BaudRate = 921600;
   huart8.Init.WordLength = UART_WORDLENGTH_8B;
   huart8.Init.StopBits = UART_STOPBITS_1;
   huart8.Init.Parity = UART_PARITY_NONE;
@@ -869,10 +927,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, FET8_Pin|FET7_Pin|FET6_Pin|FET5_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(FET4_GPIO_Port, FET4_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, FET8_Pin|FET7_Pin|FET6_Pin|FET5_Pin 
+                          |FET4_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, FET3_Pin|FET2_Pin|FET1_Pin, GPIO_PIN_SET);
@@ -885,14 +941,19 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PING_Pin|RS_SIG2B8_Pin|RS_SIG1B9_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : FET8_Pin FET7_Pin FET6_Pin FET5_Pin 
-                           FET4_Pin */
-  GPIO_InitStruct.Pin = FET8_Pin|FET7_Pin|FET6_Pin|FET5_Pin 
-                          |FET4_Pin;
+  /*Configure GPIO pins : FET8_Pin FET7_Pin FET6_Pin FET5_Pin */
+  GPIO_InitStruct.Pin = FET8_Pin|FET7_Pin|FET6_Pin|FET5_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : FET4_Pin */
+  GPIO_InitStruct.Pin = FET4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(FET4_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : FET3_Pin FET2_Pin FET1_Pin */
   GPIO_InitStruct.Pin = FET3_Pin|FET2_Pin|FET1_Pin;
@@ -969,13 +1030,13 @@ void StartDefaultTask(void *argument)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
+  _HAL_TIM_PeriodElapsedCallback(htim);
 
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  _HAL_TIM_PeriodElapsedCallback(htim);
 
   /* USER CODE END Callback 1 */
 }

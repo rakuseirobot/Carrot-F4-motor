@@ -9,7 +9,15 @@
 #include "led_control.hpp"
 #include "interrupt.hpp"
 
+
+extern neopixel front;
+extern int16_t ff;
+
 void _HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	led_control_int_func(htim);
+	if (htim == &htim10){
+			front.int_act();
+	}
 }
+
+
