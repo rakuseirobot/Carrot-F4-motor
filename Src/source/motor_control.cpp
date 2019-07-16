@@ -32,6 +32,7 @@ uint8_t rx_flag=0;
 float motor_receive_data[5];
 
 bool MOTOR_BRAKE = false;
+bool EMERGENCY = false;
 
 void raspi_uart_func(){
 	if(bufferRx==255&&rx_flag==0){
@@ -58,7 +59,7 @@ void raspi_uart_func(){
 		else{
 			motor_receive_data[rxData_buffer[0]]=(rxData_buffer[1]<<8)|bufferRx;
 		}
-		if(rxData_buffer[0]==5){
+		if(rxData_buffer[0]==motor_bb_data){
 			if((((int16_t)motor_receive_data[motor_bb_data]>>9)&0x01)==1){
 				MOTOR_BRAKE=true;
 				motor::brake();
@@ -73,23 +74,23 @@ void raspi_uart_func(){
 		rxData_buffer[1]=0;
 	}
 	HAL_UART_Receive_IT(&huart8, (uint8_t*) &bufferRx,1);
-	//motor::update_target();
-	//motor::update_pwm();
+	motor::update_target();
+	motor::update_pwm();
 }
 
 void motor::update_pwm(void){
-	int16_t turn_fix = motor_receive_data[motor_turnspeed_data];
-	if(MOTOR_BRAKE==false){
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_1, sqrtf(2)/2*((motor_var.X-motor_var.Y)-turn_fix)+110);//1
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_2, sqrtf(2)/2*((motor_var.X+motor_var.Y)-turn_fix)+110);//2
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_3, sqrtf(2)/2*((motor_var.X-motor_var.Y)+turn_fix)+110);//M3
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_4, sqrtf(2)/2*((motor_var.X+motor_var.Y)+turn_fix)+110);//4
+	int16_t turn_fix = motor_receive_data[motor_turnspeed_data]*40;
+	if(MOTOR_BRAKE==false&&EMERGENCY==false){
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_1, -1*sqrtf(2)/2*((motor_var.X-motor_var.Y)-turn_fix)+110);//1
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_2, -1*sqrtf(2)/2*((motor_var.X+motor_var.Y)-turn_fix)+110);//2
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_3, -1*sqrtf(2)/2*((motor_var.X+motor_var.Y)+turn_fix)+110);//M3
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_4, -1*sqrtf(2)/2*((motor_var.X-motor_var.Y)+turn_fix)+110);//4
 	}
 	else{
 		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_1,110);//1
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_2,+110);//2
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_3,+110);//M3
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_4,+110);//4
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_2,110);//2
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_3,110);//M3
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_4,110);//4
 	}
 }
 
@@ -105,8 +106,8 @@ void motor::update_target(void){
 	//motor::move_angle(motor_receive_data[motor_angle_data],motor_receive_data[motor_speed_data]);
 	/*motor_var.X=motor_target.vx;
 	motor_var.Y=motor_target.vy;*/
-	motor_var.X=motor_receive_data[motor_x_data];
-	motor_var.Y=motor_receive_data[motor_y_data];
+	motor_var.X=motor_receive_data[motor_y_data]*70;
+	motor_var.Y=motor_receive_data[motor_x_data]*70;
 	return;
 }
 
@@ -139,17 +140,25 @@ void motor::init(void){
 
 void motor_task(void *argument){
 	while(1){
-		serial.string("[Motor_Status] X:");
-		serial.putfloat(motor_receive_data[motor_x_data]);
-		serial.string(",Y:");
-		serial.putfloat(motor_receive_data[motor_y_data]);
-		serial.string(",Turn:");
-		serial.putfloat(motor_receive_data[motor_turnspeed_data]);
-		serial.string(",Brake:");
-		serial.putint(((int16_t)motor_receive_data[motor_bb_data]>>9)&0x01);
-		serial.string(",LiPo:");
-		serial.putfloat(LiPo_boltage);
-		serial.string("V\n\r");
+		if(EMERGENCY==false){
+			serial.string("[Motor_Status] X:");
+			serial.putfloat(motor_receive_data[motor_x_data]);
+			serial.string(",Y:");
+			serial.putfloat(motor_receive_data[motor_y_data]);
+			serial.string(",Turn:");
+			serial.putfloat(motor_receive_data[motor_turnspeed_data]);
+			serial.string(",Brake:");
+			serial.putint(((int16_t)motor_receive_data[motor_bb_data]>>9)&0x01);
+			serial.string(",LiPo:");
+			serial.putfloat(LiPo_boltage);
+			serial.string("V\n\r");
+		}
+		else if(EMERGENCY==true){
+			serial.string("\e[43m\e[31m [EMERGENCY STOP]");
+			serial.string("LiPo:");
+			serial.putfloat(LiPo_boltage);
+			serial.string("V\e[0m\n\r");
+		}
 		osDelay(100);
 	}
 }

@@ -25,6 +25,7 @@ void cpploop(void){
 
 void init_carrot(void){
 	serial.string("wake up!\n\r");
+	HAL_GPIO_WritePin(FET8_GPIO_Port,FET8_Pin,GPIO_PIN_SET);
 	init_adc();
 	//front.set_all_color(0xFF, 0, 0);
 	//front.update();

@@ -8,6 +8,8 @@
 #include "peripheral.hpp"
 #include "led_control.hpp"
 #include "interrupt.hpp"
+#include "motor_control.hpp"
+#include "main.h"
 
 
 extern neopixel front;
@@ -20,4 +22,12 @@ void _HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-
+void _EXTI0_IRQHandler(void){
+	if (HAL_GPIO_ReadPin(EMERGENCY_GPIO_Port,EMERGENCY_Pin)==GPIO_PIN_SET){ //Push Button
+		EMERGENCY=true;
+		motor::brake();
+	}
+	else if(HAL_GPIO_ReadPin(EMERGENCY_GPIO_Port,EMERGENCY_Pin)==GPIO_PIN_RESET){ //Reset Button
+		EMERGENCY=false;
+	}
+}

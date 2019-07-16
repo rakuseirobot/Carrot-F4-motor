@@ -44,4 +44,6 @@ extern int16_t bufferRx;
 extern bool LiPo_warning;
 extern float LiPo_boltage;
 
+extern bool EMERGENCY;
+
 #endif /* SOURCE_PERIPHERAL_HPP_ */

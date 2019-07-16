@@ -27,6 +27,7 @@
 #include "source/carrot_adc_control.hpp"
 #include "source/carrot_wrapper.hpp"
 #include "source/interrupt.hpp"
+#include "source/motor_control.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,6 +53,8 @@ DMA_HandleTypeDef hdma_adc1;
 CAN_HandleTypeDef hcan2;
 
 I2C_HandleTypeDef hi2c3;
+
+IWDG_HandleTypeDef hiwdg;
 
 SPI_HandleTypeDef hspi3;
 
@@ -100,6 +103,7 @@ static void MX_UART8_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_TIM10_Init(void);
+static void MX_IWDG_Init(void);
 void StartDefaultTask(void *argument); // for v2
 extern void check_adc1_task(void *argument); // for v2
 extern void motor_task(void *argument); // for v2
@@ -163,6 +167,7 @@ int main(void)
   MX_I2C3_Init();
   MX_TIM13_Init();
   MX_TIM10_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
   init_carrot();
 
@@ -257,8 +262,9 @@ void SystemClock_Config(void)
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 8;
@@ -464,6 +470,34 @@ static void MX_I2C3_Init(void)
   /* USER CODE BEGIN I2C3_Init 2 */
 
   /* USER CODE END I2C3_Init 2 */
+
+}
+
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
+
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+  hiwdg.Init.Reload = 4095;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
 
 }
 
@@ -964,7 +998,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : EMERGENCY_Pin */
   GPIO_InitStruct.Pin = EMERGENCY_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(EMERGENCY_GPIO_Port, &GPIO_InitStruct);
 
@@ -994,6 +1028,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 3, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -1014,7 +1052,7 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(10000000);
   }
   /* USER CODE END 5 */ 
 }

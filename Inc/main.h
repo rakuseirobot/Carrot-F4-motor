@@ -78,6 +78,7 @@ void Error_Handler(void);
 #define FET1_GPIO_Port GPIOC
 #define EMERGENCY_Pin GPIO_PIN_0
 #define EMERGENCY_GPIO_Port GPIOC
+#define EMERGENCY_EXTI_IRQn EXTI0_IRQn
 #define ADC4_Pin GPIO_PIN_2
 #define ADC4_GPIO_Port GPIOC
 #define ADC3_Pin GPIO_PIN_3
