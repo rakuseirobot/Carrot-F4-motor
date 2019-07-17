@@ -35,7 +35,21 @@ extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern DMA_HandleTypeDef hdma_uart8_rx;
 
+
+typedef StaticTask_t osStaticThreadDef_t;
+
 extern osThreadId_t defaultTaskHandle;
+extern uint32_t defaultTaskBuffer[ 128 ];
+extern osStaticThreadDef_t defaultTaskControlBlock;
+extern osThreadId_t adc1Handle;
+extern uint32_t adc1Buffer[ 1024 ];
+extern osStaticThreadDef_t adc1ControlBlock;
+extern osThreadId_t motorHandle;
+extern uint32_t motorBuffer[ 1024 ];
+extern osStaticThreadDef_t motorControlBlock;
+extern osThreadId_t EMERGENCYHandle;
+extern uint32_t EMERGENCYBuffer[ 1024 ];
+extern osStaticThreadDef_t EMERGENCYControlBlock;
 
 extern uart serial;
 

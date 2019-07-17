@@ -12,6 +12,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+void EMERGENCY_notification(void *argument);
 void _HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void _EXTI0_IRQHandler(void);
 #ifdef __cplusplus

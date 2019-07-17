@@ -77,6 +77,9 @@ osStaticThreadDef_t adc1ControlBlock;
 osThreadId_t motorHandle;
 uint32_t motorBuffer[ 1024 ];
 osStaticThreadDef_t motorControlBlock;
+osThreadId_t EMERGENCYHandle;
+uint32_t EMERGENCYBuffer[ 1024 ];
+osStaticThreadDef_t EMERGENCYControlBlock;
 /* USER CODE BEGIN PV */
 
 
@@ -104,6 +107,7 @@ static void MX_TIM10_Init(void);
 void StartDefaultTask(void *argument); // for v2
 extern void check_adc1_task(void *argument); // for v2
 extern void motor_task(void *argument); // for v2
+extern void EMERGENCY_notification(void *argument); // for v2
 
 /* USER CODE BEGIN PFP */
 
@@ -222,6 +226,17 @@ int main(void)
     .priority = (osPriority_t) osPriorityLow,
   };
   motorHandle = osThreadNew(motor_task, NULL, &motor_attributes);
+
+  /* definition and creation of EMERGENCY */
+  const osThreadAttr_t EMERGENCY_attributes = {
+    .name = "EMERGENCY",
+    .stack_mem = &EMERGENCYBuffer[0],
+    .stack_size = sizeof(EMERGENCYBuffer),
+    .cb_mem = &EMERGENCYControlBlock,
+    .cb_size = sizeof(EMERGENCYControlBlock),
+    .priority = (osPriority_t) osPriorityLow,
+  };
+  EMERGENCYHandle = osThreadNew(EMERGENCY_notification, NULL, &EMERGENCY_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -700,9 +715,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 65535;
+  htim4.Init.Prescaler = 20000;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 2;
+  htim4.Init.Period = 10;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
@@ -1019,6 +1034,7 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+	osThreadTerminate(defaultTaskHandle);
     osDelay(10000000);
   }
   /* USER CODE END 5 */ 
