@@ -66,6 +66,7 @@ TIM_HandleTypeDef htim13;
 UART_HandleTypeDef huart8;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_uart8_rx;
 
 typedef StaticTask_t osStaticThreadDef_t;
 osThreadId_t defaultTaskHandle;
@@ -121,9 +122,9 @@ extern void encoder_task(void *argument);
 /* USER CODE BEGIN 0 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-     if(UartHandle->Instance==UART8){
+     /*if(UartHandle->Instance==UART8){
     	 raspi_uart_func();
-    }
+    }*/
 }
 
 /* USER CODE END 0 */
@@ -941,8 +942,12 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);

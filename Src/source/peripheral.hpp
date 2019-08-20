@@ -57,7 +57,7 @@ extern osStaticThreadDef_t EMERGENCYControlBlock;
 
 extern uart serial;
 
-extern int16_t bufferRx;
+extern char rxBuff[4];
 
 extern bool LiPo_warning;
 extern float LiPo_boltage;

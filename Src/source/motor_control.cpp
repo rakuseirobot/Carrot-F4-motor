@@ -25,11 +25,7 @@ motor_target_t motor_target;
 motor_var_t motor_var;
 
 angle_var_t angle_var;
-
-int16_t bufferRx;
-int16_t rxData_buffer[2];
-uint8_t rx_flag=0;
-
+char rxBuff[4];
 int32_t X_count,Y_count;
 
 float motor_receive_data[6];
