@@ -15,8 +15,18 @@
 #define DEG2DEG(x)		(float)((x) * M_PI / 180)
 
 
+#define X_Encoder_COUNT TIM2->CNT
+#define Y_Encoder_COUNT TIM3->CNT
+
+
+
 
 #ifdef __cplusplus
+
+typedef enum{
+	X_axis,
+	Y_axis
+}ch_t;
 
 enum{
 	motor_x_data=1,
@@ -67,6 +77,9 @@ namespace motor{
 	void move_angle(float,int16_t);
 	void brake(void);
 }
+int32_t Get_Encoder(ch_t x);
+void start_encoder();
+void stop_encoder();
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,6 +88,10 @@ extern "C" {
 void motor_task(void *argument);
 
 void raspi_uart_func(void);
+
+void update_encoder(void);
+
+void encoder_task(void *argument);
 
 #ifdef __cplusplus
 }

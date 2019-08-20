@@ -80,6 +80,9 @@ osStaticThreadDef_t motorControlBlock;
 osThreadId_t EMERGENCYHandle;
 uint32_t EMERGENCYBuffer[ 1024 ];
 osStaticThreadDef_t EMERGENCYControlBlock;
+osThreadId_t encoderHandle;
+uint32_t encoderBuffer[ 128 ];
+osStaticThreadDef_t encoderControlBlock;
 /* USER CODE BEGIN PV */
 
 
@@ -104,10 +107,11 @@ static void MX_UART8_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_TIM10_Init(void);
-void StartDefaultTask(void *argument); // for v2
-extern void check_adc1_task(void *argument); // for v2
-extern void motor_task(void *argument); // for v2
-extern void EMERGENCY_notification(void *argument); // for v2
+void StartDefaultTask(void *argument);
+extern void check_adc1_task(void *argument);
+extern void motor_task(void *argument);
+extern void EMERGENCY_notification(void *argument);
+extern void encoder_task(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -175,7 +179,7 @@ int main(void)
 
   /* USER CODE END 2 */
 
-  osKernelInitialize(); // Initialize CMSIS-RTOS
+  osKernelInitialize();
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -237,6 +241,17 @@ int main(void)
     .priority = (osPriority_t) osPriorityLow,
   };
   EMERGENCYHandle = osThreadNew(EMERGENCY_notification, NULL, &EMERGENCY_attributes);
+
+  /* definition and creation of encoder */
+  const osThreadAttr_t encoder_attributes = {
+    .name = "encoder",
+    .stack_mem = &encoderBuffer[0],
+    .stack_size = sizeof(encoderBuffer),
+    .cb_mem = &encoderControlBlock,
+    .cb_size = sizeof(encoderControlBlock),
+    .priority = (osPriority_t) osPriorityRealtime,
+  };
+  encoderHandle = osThreadNew(encoder_task, NULL, &encoder_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -328,7 +343,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -339,7 +354,15 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_3;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+  */
+  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -617,9 +640,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
+  htim2.Init.Prescaler = 1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 0;
+  htim2.Init.Period = 65535;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
@@ -666,9 +689,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 0;
+  htim3.Init.Period = 65535;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
@@ -915,6 +938,7 @@ static void MX_USART2_UART_Init(void)
   */
 static void MX_DMA_Init(void) 
 {
+
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
 
@@ -943,7 +967,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, FET8_Pin|FET7_Pin|FET6_Pin|FET5_Pin 
+  HAL_GPIO_WritePin(GPIOE, FET_BAR_Pin|FET_RIGHT_Pin|FET_LEFT_Pin|FET_RED_Pin 
                           |FET4_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
@@ -957,8 +981,8 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PING_Pin|RS_SIG2B8_Pin|RS_SIG1B9_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : FET8_Pin FET7_Pin FET6_Pin FET5_Pin */
-  GPIO_InitStruct.Pin = FET8_Pin|FET7_Pin|FET6_Pin|FET5_Pin;
+  /*Configure GPIO pins : FET_BAR_Pin FET_RIGHT_Pin FET_LEFT_Pin FET_RED_Pin */
+  GPIO_InitStruct.Pin = FET_BAR_Pin|FET_RIGHT_Pin|FET_LEFT_Pin|FET_RED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1011,7 +1035,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 3, 0);
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 }
@@ -1029,6 +1053,13 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
+    
+    
+    
+    
+    
+    
+    
 
   /* USER CODE BEGIN 5 */
   /* Infinite loop */

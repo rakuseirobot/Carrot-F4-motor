@@ -46,12 +46,11 @@
 /* Section where include file can be added */
 /* USER CODE END Includes */ 
 
-/* Ensure stdint is only used by the compiler, and not the assembler. */
+/* Ensure definitions are only used by the compiler, and not by the assembler. */
 #if defined(__ICCARM__) || defined(__CC_ARM) || defined(__GNUC__)
-    #include <stdint.h>
-    extern uint32_t SystemCoreClock;
+  #include <stdint.h>
+  extern uint32_t SystemCoreClock;
 #endif
-
 #define configUSE_PREEMPTION                     1
 #define configSUPPORT_STATIC_ALLOCATION          1
 #define configSUPPORT_DYNAMIC_ALLOCATION         1
@@ -92,7 +91,10 @@ to exclude the API function. */
 #define INCLUDE_vTaskDelayUntil             1
 #define INCLUDE_vTaskDelay                  1
 #define INCLUDE_xTaskGetSchedulerState      1
+#define INCLUDE_xTimerPendFunctionCall      1
+#define INCLUDE_xQueueGetMutexHolder        1
 #define INCLUDE_uxTaskGetStackHighWaterMark 1
+#define INCLUDE_eTaskGetState               1
 
 /* 
  * The CMSIS-RTOS V2 FreeRTOS wrapper is dependent on the heap implementation used

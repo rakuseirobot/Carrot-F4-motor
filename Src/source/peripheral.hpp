@@ -13,6 +13,10 @@
 #include "uart_control.hpp"
 #include "led_control.hpp"
 
+#define LOW_POWER
+#define LIPO_WARNING_VOLTAGE 11
+#define LOGIC_WARNING_VOLTAGE 11
+
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc3;
 extern DMA_HandleTypeDef hdma_adc1;
@@ -57,7 +61,11 @@ extern int16_t bufferRx;
 
 extern bool LiPo_warning;
 extern float LiPo_boltage;
+extern bool logic_warning;
+extern float Logic_boltage;
 
 extern bool EMERGENCY;
+
+extern int32_t X_count,Y_count;
 
 #endif /* SOURCE_PERIPHERAL_HPP_ */

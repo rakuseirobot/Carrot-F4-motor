@@ -25,7 +25,15 @@ void cpploop(void){
 
 void init_carrot(void){
 	serial.string("wake up!\n\r");
-	HAL_GPIO_WritePin(FET8_GPIO_Port,FET8_Pin,GPIO_PIN_SET);
+
+	#ifdef LOW_POWER
+	HAL_GPIO_WritePin(FET_BAR_GPIO_Port, FET_BAR_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(FET_RIGHT_GPIO_Port, FET_RIGHT_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(FET_LEFT_GPIO_Port, FET_LEFT_Pin, GPIO_PIN_RESET);
+	#else
+	HAL_GPIO_WritePin(FET_BAR_GPIO_Port,FET_BAR_Pin,GPIO_PIN_SET);
+	#endif
+
 	init_adc();
 
 	HAL_GPIO_WritePin(BUZZER1_GPIO_Port,BUZZER1_Pin,GPIO_PIN_SET);
@@ -37,7 +45,12 @@ void init_carrot(void){
 	//front.update();
 	motor::init();
 	HAL_UART_Receive_IT(&huart8, (uint8_t*) &bufferRx,1);
-	motor::move_angle(0, 30);
-	motor::update_target();
+	start_encoder();
+	X_Encoder_COUNT=32767;
+	Y_Encoder_COUNT=32767;
+	if (HAL_GPIO_ReadPin(EMERGENCY_GPIO_Port,EMERGENCY_Pin)==GPIO_PIN_RESET){ //Push Button
+			EMERGENCY=true;
+			motor::brake();
+	}
 	return;
 }
