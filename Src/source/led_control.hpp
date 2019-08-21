@@ -7,10 +7,11 @@
 
 #ifndef SOURCE_LED_CONTROL_HPP_
 #define SOURCE_LED_CONTROL_HPP_
-
+/*
 #include <stm32f4xx_hal.h>
 #include "peripheral.hpp"
 #include <queue>
+#include <stdlib.h>
 
 struct neopixel{
 	GPIO_TypeDef* gpio;uint16_t pin;uint16_t led_num;
@@ -22,7 +23,7 @@ struct neopixel{
 	void send_bit(uint8_t bit);
 	void set_all_color(uint8_t red,uint8_t green,uint8_t blue);
 	void update(void);
-};
+};*/
 
 
 

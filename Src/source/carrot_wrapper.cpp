@@ -16,7 +16,7 @@ int16_t ff;
 
 
 uart serial(&huart1);
-neopixel front(FET4_GPIO_Port,FET4_Pin,50);
+//neopixel front(FET4_GPIO_Port,FET4_Pin,50);
 
 void cpploop(void){
 
@@ -27,7 +27,7 @@ void init_carrot(void){
 	serial.string("wake up!\n\r");
 
 	#ifdef LOW_POWER
-	HAL_GPIO_WritePin(FET_BAR_GPIO_Port, FET_BAR_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(FET_BAR_GPIO_Port, FET_BAR_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(FET_RIGHT_GPIO_Port, FET_RIGHT_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(FET_LEFT_GPIO_Port, FET_LEFT_Pin, GPIO_PIN_RESET);
 	#else
@@ -44,7 +44,8 @@ void init_carrot(void){
 	//front.set_all_color(0xFF, 0, 0);
 	//front.update();
 	motor::init();
-	HAL_UART_Receive_IT(&huart8, (uint8_t*) &bufferRx,1);
+
+	HAL_UART_Receive_DMA(&huart8, (uint8_t*)rxBuff, 4);
 	start_encoder();
 	X_Encoder_COUNT=32767;
 	Y_Encoder_COUNT=32767;

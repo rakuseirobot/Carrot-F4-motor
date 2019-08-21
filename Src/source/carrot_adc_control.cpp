@@ -7,6 +7,8 @@
 #include "uart_control.hpp"
 #include "motor_control.hpp"
 
+extern uart serial;
+
 extern int16_t ff;
 
 enum{ ADC_BUFFER_LENGTH = 2 };

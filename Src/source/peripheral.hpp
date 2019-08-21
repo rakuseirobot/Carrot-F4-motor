@@ -9,9 +9,9 @@
 #define SOURCE_PERIPHERAL_HPP_
 
 #include <stm32f4xx_hal.h>
+#include "stdbool.h"
 #include "../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h"
-#include "uart_control.hpp"
-#include "led_control.hpp"
+//#include "uart_control.hpp"
 
 #define LOW_POWER
 #define LIPO_WARNING_VOLTAGE 11
@@ -55,9 +55,7 @@ extern osThreadId_t EMERGENCYHandle;
 extern uint32_t EMERGENCYBuffer[ 1024 ];
 extern osStaticThreadDef_t EMERGENCYControlBlock;
 
-extern uart serial;
-
-extern int16_t bufferRx;
+extern uint16_t rxBuff[4];
 
 extern bool LiPo_warning;
 extern float LiPo_boltage;

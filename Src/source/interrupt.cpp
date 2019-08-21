@@ -14,7 +14,7 @@
 #include "task.h"
 
 
-extern neopixel front;
+//extern neopixel front;
 extern int16_t ff;
 
 
@@ -37,7 +37,7 @@ void EMERGENCY_notification(void *argument){
 void _HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim == &htim10){
-			front.int_act();
+			//front.int_act();
 	}
 }
 
