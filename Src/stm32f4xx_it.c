@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 #include "source/peripheral.hpp"
 #include "source/interrupt.hpp"
+#include "source/motor_control.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -188,12 +189,10 @@ void EXTI0_IRQHandler(void)
 void DMA1_Stream6_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Stream6_IRQn 0 */
-
   /* USER CODE END DMA1_Stream6_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_uart8_rx);
   /* USER CODE BEGIN DMA1_Stream6_IRQn 1 */
-	 raspi_uart_func();
-	 HAL_UART_Receive_DMA(&huart8, (uint8_t*)rxBuff, 4);
+  raspi_uart_func();
   /* USER CODE END DMA1_Stream6_IRQn 1 */
 }
 

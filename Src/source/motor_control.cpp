@@ -10,6 +10,7 @@
 #include "main.h"
 #include "stm32f4xx_hal.h"
 #include <math.h>
+#include "uart_control.hpp"
 
 #include "peripheral.hpp"
 /*
@@ -20,12 +21,14 @@
 #define ANGLE_IGAIN 0.0
 #define ANGLE_DGAIN 0
 
+extern uart serial;
+
 motor_target_t motor_target;
 
 motor_var_t motor_var;
 
 angle_var_t angle_var;
-char rxBuff[4];
+uint16_t rxBuff[4];
 int32_t X_count,Y_count;
 
 float motor_receive_data[6];
@@ -34,50 +37,39 @@ bool MOTOR_BRAKE = false;
 bool EMERGENCY = false;
 
 void raspi_uart_func(){
-	if(bufferRx==255&&rx_flag==0){
-		rx_flag=1;
+	if(rxBuff[0]!=0xFF){
+	    HAL_UART_Receive_DMA(&huart8, (uint8_t*)rxBuff, 4);
+		return;
 	}
-	else if(rx_flag==1){
-		rxData_buffer[0]=bufferRx;
-		rx_flag=2;
+	if(rxBuff[1]==1){
+		motor_receive_data[1]=(float)((float)((int32_t)(rxBuff[2]<<8)|rxBuff[3])-10000)/10000;
 	}
-	else if(rx_flag==2){
-		rxData_buffer[1]=bufferRx;
-		rx_flag=3;
+	else if(rxBuff[1]==2){
+		motor_receive_data[2]=(float)((float)((int32_t)(rxBuff[2]<<8)|rxBuff[3])-10000)/10000;
 	}
-	else if(rx_flag==3){
-		if(rxData_buffer[0]==1){
-			motor_receive_data[1]=(float)((float)((int32_t)(rxData_buffer[1]<<8)|bufferRx)-10000)/10000;
+	else if(rxBuff[1]==3){
+		motor_receive_data[3]=(float)((float)((int32_t)(rxBuff[2]<<8)|rxBuff[3])-10000)/10000;
+	}
+	else if(rxBuff[1]==5){
+		motor_receive_data[5]=(float)((float)((int32_t)(rxBuff[2]<<8)|rxBuff[3])-10000)/10000;
+	}
+	else{
+		motor_receive_data[rxBuff[1]]=(rxBuff[2]<<8)|rxBuff[3];
+	}
+	if(rxBuff[1]==motor_bb_data){
+		if((((int16_t)motor_receive_data[motor_bb_data]>>9)&0x01)==1){
+			MOTOR_BRAKE=true;
+			motor::brake();
 		}
-		else if(rxData_buffer[0]==2){
-			motor_receive_data[2]=(float)((float)((int32_t)(rxData_buffer[1]<<8)|bufferRx)-10000)/10000;
+		if((((int16_t)motor_receive_data[motor_bb_data]>>9)&0x01)==0){
+			MOTOR_BRAKE=false;
 		}
-		else if(rxData_buffer[0]==3){
-			motor_receive_data[3]=(float)((float)((int32_t)(rxData_buffer[1]<<8)|bufferRx)-10000)/10000;
-		}
-		else if(rxData_buffer[0]==5){
-			motor_receive_data[5]=(float)((float)((int32_t)(rxData_buffer[1]<<8)|bufferRx)-10000)/10000;
-		}
-		else{
-			motor_receive_data[rxData_buffer[0]]=(rxData_buffer[1]<<8)|bufferRx;
-		}
-		if(rxData_buffer[0]==motor_bb_data){
-			if((((int16_t)motor_receive_data[motor_bb_data]>>9)&0x01)==1){
-				MOTOR_BRAKE=true;
-				motor::brake();
-			}
-			if((((int16_t)motor_receive_data[motor_bb_data]>>9)&0x01)==0){
-				MOTOR_BRAKE=false;
-			}
 
-		}
-		rx_flag=0;
-		rxData_buffer[0]=0;
-		rxData_buffer[1]=0;
 	}
-	HAL_UART_Receive_IT(&huart8, (uint8_t*) &bufferRx,1);
 	motor::update_target();
 	motor::update_pwm();
+    HAL_UART_Receive_DMA(&huart8, (uint8_t*)rxBuff, 4);
+	return;
 }
 
 uint16_t pwm_calculater(uint16_t value){

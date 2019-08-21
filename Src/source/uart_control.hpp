@@ -12,7 +12,7 @@
 
 struct uart{
 	UART_HandleTypeDef *use_uart;
-	uart(UART_HandleTypeDef *uat);
+	uart(UART_HandleTypeDef *huart);
 	uint8_t get(void);
 	void send(uint8_t c);
 	void string(const char *s);
