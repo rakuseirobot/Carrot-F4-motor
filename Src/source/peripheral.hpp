@@ -14,8 +14,13 @@
 //#include "uart_control.hpp"
 
 #define LOW_POWER
-#define LIPO_WARNING_VOLTAGE 11
+extern char MOTOR_BATTERY_TYPE[4][8];
+extern uint8_t MOTOR_BATTERY_TYPE_NUM;
+extern float LIPO_WARNING_VOLTAGE;
 #define LOGIC_WARNING_VOLTAGE 11
+#define MOTOR_POWER_STANDARD_VOLTAGE 12
+
+#define SPEED_CONTROL
 
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc3;
@@ -54,6 +59,9 @@ extern osStaticThreadDef_t motorControlBlock;
 extern osThreadId_t EMERGENCYHandle;
 extern uint32_t EMERGENCYBuffer[ 1024 ];
 extern osStaticThreadDef_t EMERGENCYControlBlock;
+extern osThreadId_t ledHandle;
+extern uint32_t LED_taskBuffer[ 1024 ];
+extern osStaticThreadDef_t LED_taskControlBlock;
 
 extern uint16_t rxBuff[4];
 
@@ -61,6 +69,10 @@ extern bool LiPo_warning;
 extern float LiPo_boltage;
 extern bool logic_warning;
 extern float Logic_boltage;
+
+extern float MOTOR_SPEED_GAIN;
+
+extern uint32_t UART_LOSS;
 
 extern bool EMERGENCY;
 

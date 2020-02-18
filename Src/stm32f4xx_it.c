@@ -28,6 +28,7 @@
 #include "source/peripheral.hpp"
 #include "source/interrupt.hpp"
 #include "source/motor_control.hpp"
+#include "source/carrot_adc_control.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -244,10 +245,13 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void)
 void DMA2_Stream0_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
-
+  LiPo_boltage=3.3*(float)adc1_Buffer[0]/4095*(2200+330)/330;
+  Logic_boltage=3.3*(float)adc1_Buffer[1]/4095*(15000+4700)/4700;
+  MOTOR_SPEED_GAIN=MOTOR_POWER_STANDARD_VOLTAGE/LiPo_boltage;
   /* USER CODE END DMA2_Stream0_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_adc1);
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
+  HAL_ADC_Start_DMA(&hadc1,(uint32_t *) adc1_Buffer, (uint32_t)ADC_BUFFER_LENGTH);
 
   /* USER CODE END DMA2_Stream0_IRQn 1 */
 }

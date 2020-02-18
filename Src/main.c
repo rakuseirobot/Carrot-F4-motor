@@ -31,6 +31,7 @@
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -68,22 +69,78 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_uart8_rx;
 
-typedef StaticTask_t osStaticThreadDef_t;
+/* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 uint32_t defaultTaskBuffer[ 128 ];
 osStaticThreadDef_t defaultTaskControlBlock;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_mem = &defaultTaskBuffer[0],
+  .stack_size = sizeof(defaultTaskBuffer),
+  .cb_mem = &defaultTaskControlBlock,
+  .cb_size = sizeof(defaultTaskControlBlock),
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for adc1 */
 osThreadId_t adc1Handle;
 uint32_t adc1Buffer[ 1024 ];
 osStaticThreadDef_t adc1ControlBlock;
+const osThreadAttr_t adc1_attributes = {
+  .name = "adc1",
+  .stack_mem = &adc1Buffer[0],
+  .stack_size = sizeof(adc1Buffer),
+  .cb_mem = &adc1ControlBlock,
+  .cb_size = sizeof(adc1ControlBlock),
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for motor */
 osThreadId_t motorHandle;
 uint32_t motorBuffer[ 1024 ];
 osStaticThreadDef_t motorControlBlock;
+const osThreadAttr_t motor_attributes = {
+  .name = "motor",
+  .stack_mem = &motorBuffer[0],
+  .stack_size = sizeof(motorBuffer),
+  .cb_mem = &motorControlBlock,
+  .cb_size = sizeof(motorControlBlock),
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for EMERGENCY */
 osThreadId_t EMERGENCYHandle;
 uint32_t EMERGENCYBuffer[ 1024 ];
 osStaticThreadDef_t EMERGENCYControlBlock;
+const osThreadAttr_t EMERGENCY_attributes = {
+  .name = "EMERGENCY",
+  .stack_mem = &EMERGENCYBuffer[0],
+  .stack_size = sizeof(EMERGENCYBuffer),
+  .cb_mem = &EMERGENCYControlBlock,
+  .cb_size = sizeof(EMERGENCYControlBlock),
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for encoder */
 osThreadId_t encoderHandle;
 uint32_t encoderBuffer[ 128 ];
 osStaticThreadDef_t encoderControlBlock;
+const osThreadAttr_t encoder_attributes = {
+  .name = "encoder",
+  .stack_mem = &encoderBuffer[0],
+  .stack_size = sizeof(encoderBuffer),
+  .cb_mem = &encoderControlBlock,
+  .cb_size = sizeof(encoderControlBlock),
+  .priority = (osPriority_t) osPriorityRealtime,
+};
+/* Definitions for led */
+osThreadId_t ledHandle;
+uint32_t LED_taskBuffer[ 1024 ];
+osStaticThreadDef_t LED_taskControlBlock;
+const osThreadAttr_t led_attributes = {
+  .name = "led",
+  .stack_mem = &LED_taskBuffer[0],
+  .stack_size = sizeof(LED_taskBuffer),
+  .cb_mem = &LED_taskControlBlock,
+  .cb_size = sizeof(LED_taskControlBlock),
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* USER CODE BEGIN PV */
 
 
@@ -113,6 +170,7 @@ extern void check_adc1_task(void *argument);
 extern void motor_task(void *argument);
 extern void EMERGENCY_notification(void *argument);
 extern void encoder_task(void *argument);
+extern void led_task(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -179,7 +237,7 @@ int main(void)
 
 
   /* USER CODE END 2 */
-
+  /* Init scheduler */
   osKernelInitialize();
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -199,60 +257,23 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  const osThreadAttr_t defaultTask_attributes = {
-    .name = "defaultTask",
-    .stack_mem = &defaultTaskBuffer[0],
-    .stack_size = sizeof(defaultTaskBuffer),
-    .cb_mem = &defaultTaskControlBlock,
-    .cb_size = sizeof(defaultTaskControlBlock),
-    .priority = (osPriority_t) osPriorityLow,
-  };
+  /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* definition and creation of adc1 */
-  const osThreadAttr_t adc1_attributes = {
-    .name = "adc1",
-    .stack_mem = &adc1Buffer[0],
-    .stack_size = sizeof(adc1Buffer),
-    .cb_mem = &adc1ControlBlock,
-    .cb_size = sizeof(adc1ControlBlock),
-    .priority = (osPriority_t) osPriorityLow,
-  };
+  /* creation of adc1 */
   adc1Handle = osThreadNew(check_adc1_task, NULL, &adc1_attributes);
 
-  /* definition and creation of motor */
-  const osThreadAttr_t motor_attributes = {
-    .name = "motor",
-    .stack_mem = &motorBuffer[0],
-    .stack_size = sizeof(motorBuffer),
-    .cb_mem = &motorControlBlock,
-    .cb_size = sizeof(motorControlBlock),
-    .priority = (osPriority_t) osPriorityLow,
-  };
+  /* creation of motor */
   motorHandle = osThreadNew(motor_task, NULL, &motor_attributes);
 
-  /* definition and creation of EMERGENCY */
-  const osThreadAttr_t EMERGENCY_attributes = {
-    .name = "EMERGENCY",
-    .stack_mem = &EMERGENCYBuffer[0],
-    .stack_size = sizeof(EMERGENCYBuffer),
-    .cb_mem = &EMERGENCYControlBlock,
-    .cb_size = sizeof(EMERGENCYControlBlock),
-    .priority = (osPriority_t) osPriorityLow,
-  };
+  /* creation of EMERGENCY */
   EMERGENCYHandle = osThreadNew(EMERGENCY_notification, NULL, &EMERGENCY_attributes);
 
-  /* definition and creation of encoder */
-  const osThreadAttr_t encoder_attributes = {
-    .name = "encoder",
-    .stack_mem = &encoderBuffer[0],
-    .stack_size = sizeof(encoderBuffer),
-    .cb_mem = &encoderControlBlock,
-    .cb_size = sizeof(encoderControlBlock),
-    .priority = (osPriority_t) osPriorityRealtime,
-  };
+  /* creation of encoder */
   encoderHandle = osThreadNew(encoder_task, NULL, &encoder_attributes);
+
+  /* creation of led */
+  ledHandle = osThreadNew(led_task, NULL, &led_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -260,7 +281,7 @@ int main(void)
 
   /* Start scheduler */
   osKernelStart();
-  
+ 
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -1058,14 +1079,6 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-    
-    
-    
-    
-    
-    
-    
-
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)

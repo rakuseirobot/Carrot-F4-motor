@@ -14,6 +14,7 @@ extern "C" {
 
 void cpploop(void);
 void init_carrot(void);
+void led_task(void *argument);
 
 #ifdef __cplusplus
 };

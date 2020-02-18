@@ -18,6 +18,7 @@
 extern int16_t ff;
 
 
+
 void EMERGENCY_notification(void *argument){
 	while(1){
 		if(EMERGENCY==false){

@@ -19,9 +19,8 @@
 #define Y_Encoder_COUNT TIM3->CNT
 
 
-
-
 #ifdef __cplusplus
+
 
 typedef enum{
 	X_axis,
@@ -34,6 +33,12 @@ enum{
 	motor_turnspeed_data=3,
 	motor_bb_data=4
 };
+
+typedef struct{
+	float vx;
+	float vy;
+	float theta;
+}motor_speed_t;  // m/s
 
 typedef struct{
 	float vx;
@@ -74,22 +79,25 @@ namespace motor{
 	void init(void);
 	void update_pwm(void);
 	void update_target(void);
-	void move_angle(float,int16_t);
+	void move_angle(float,float);
 	void brake(void);
 }
 int32_t Get_Encoder(ch_t x);
 void start_encoder();
 void stop_encoder();
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 void motor_task(void *argument);
 
 void raspi_uart_func(void);
 
 void update_encoder(void);
+void feedback_speed(void);
 
 void encoder_task(void *argument);
 

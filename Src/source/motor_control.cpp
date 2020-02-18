@@ -13,23 +13,29 @@
 #include "uart_control.hpp"
 
 #include "peripheral.hpp"
-/*
+
 #define MOTOR_PGAIN 0.3
 #define MOTOR_IGAIN 0.02
-#define MOTOR_DGAIN 0.01*/
+#define MOTOR_DGAIN 0.01
 #define ANGLE_PGAIN 0.02
 #define ANGLE_IGAIN 0.0
 #define ANGLE_DGAIN 0
 
+#define MAX_SPEED 2 //ROS側と合わせる
+
 extern uart serial;
+
+motor_speed_t target_speed;
+motor_speed_t current_speed;
+motor_speed_t control_speed;
 
 motor_target_t motor_target;
 
-motor_var_t motor_var;
-
-angle_var_t angle_var;
 uint16_t rxBuff[4];
 int32_t X_count,Y_count;
+uint32_t UART_LOSS=0;
+
+float MOTOR_SPEED_GAIN=1.0;
 
 float motor_receive_data[6];
 
@@ -38,7 +44,8 @@ bool EMERGENCY = false;
 
 void raspi_uart_func(){
 	if(rxBuff[0]!=0xFF){
-	    HAL_UART_Receive_DMA(&huart8, (uint8_t*)rxBuff, 4);
+		HAL_UART_Receive_DMA(&huart8, (uint8_t*)rxBuff, 4);
+		UART_LOSS++;
 		return;
 	}
 	if(rxBuff[1]==1){
@@ -72,12 +79,21 @@ void raspi_uart_func(){
 	return;
 }
 
-uint16_t pwm_calculater(uint16_t value){
+uint16_t pwm_calculater(uint16_t value){//本来pwmは10~210
+	if(value == 110){
+		return 110;
+	}
 	if(value<20){
 		return 20;
 	}
 	else if(value>200){
 		return 200;
+	}
+	if(120>value&&value>110){
+		return 120;
+	}
+	else if(110>value&&value>100){
+		return 100;
 	}
 	else{
 		return value;
@@ -85,27 +101,33 @@ uint16_t pwm_calculater(uint16_t value){
 }
 
 void motor::update_pwm(void){
-	int16_t turn_fix = motor_receive_data[motor_turnspeed_data]*40;
+	int16_t turn_fix = target_speed.theta*40;
 	if(MOTOR_BRAKE==false&&EMERGENCY==false){
-		uint16_t one= -1*sqrtf(2)/2*((motor_var.X-motor_var.Y)-turn_fix)+110;
-		uint16_t two= -1*sqrtf(2)/2*((motor_var.X+motor_var.Y)-turn_fix)+110;
-		uint16_t three= -1*sqrtf(2)/2*((motor_var.X+motor_var.Y)+turn_fix)+110;
-		uint16_t four= -1*sqrtf(2)/2*((motor_var.X-motor_var.Y)+turn_fix)+110;
+		uint16_t one= -1*sqrtf(2)/2*((target_speed.vx-target_speed.vy)/MAX_SPEED-turn_fix)*MOTOR_SPEED_GAIN+110;
+		uint16_t two= -1*sqrtf(2)/2*((target_speed.vx+target_speed.vy)/MAX_SPEED-turn_fix)*MOTOR_SPEED_GAIN+110;
+		uint16_t three= -1*sqrtf(2)/2*((target_speed.vx+target_speed.vy)/MAX_SPEED+turn_fix)*MOTOR_SPEED_GAIN+110;
+		uint16_t four= -1*sqrtf(2)/2*((target_speed.vx-target_speed.vy)/MAX_SPEED+turn_fix)*MOTOR_SPEED_GAIN+110;
 
 		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_1,pwm_calculater(one));//1
 		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_2,pwm_calculater(two));//2
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_3,pwm_calculater(three));//M3
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_3,pwm_calculater(three));//3
 		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_4,pwm_calculater(four));//4
 	}
 	else{
 		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_1,110);//1
 		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_2,110);//2
-		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_3,110);//M3
+		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_3,110);//3
 		__HAL_TIM_SET_COMPARE(&htim1, MOTORCH_4,110);//4
 	}
 }
 
 void motor::update_target(void){
+	#ifdef SPEED_CONTROL
+	target_speed.vx=motor_receive_data[motor_y_data]*100*motor_receive_data[5];
+	target_speed.vy=motor_receive_data[motor_x_data]*100*motor_receive_data[5];
+	target_speed.theta=motor_receive_data[motor_turnspeed_data]*100*motor_receive_data[5];
+	return;
+	#else
 	/*motor_var.xdiff[0]=motor_target.vx-motor_var.X;
 	motor_var.ydiff[0]=motor_target.vy-motor_var.Y;
 	motor_var.xsum+=motor_var.xdiff[0];
@@ -132,17 +154,19 @@ void motor::update_target(void){
 		motor_var.Y=-100;
 	}
 	return;
+	#endif
+	
 }
 
-void motor::move_angle(float angle,int16_t sp){
-	motor_target.vx=cosf(angle/180*M_PI)*sp;
-	motor_target.vy=sinf(angle/180*M_PI)*sp;
+void motor::move_angle(float angle,float sp){
+	target_speed.vx=cosf(angle/180*M_PI)*sp;
+	target_speed.vy=sinf(angle/180*M_PI)*sp;
 	return;
 }
 
 void motor::brake(void){
-	motor_var.X=0;
-	motor_var.Y=0;
+	target_speed.vx=0;
+	target_speed.vy=0;
 	update_target();
 	update_pwm();
 	return;
@@ -175,12 +199,19 @@ void stop_encoder(void){
 	return;
 }
 
-void update_encoder(void){
+void update_encoder(void){//オムニ直径45mm エンコーダー一回転400
 	int32_t XC=Get_Encoder(X_axis),YC=Get_Encoder(Y_axis);
 	X_count-=XC;
 	Y_count+=YC;
 	X_Encoder_COUNT=32767;
 	Y_Encoder_COUNT=32767;
+	current_speed.vx=(45*M_PI*XC/400)*100/1000;
+	current_speed.vy=(45*M_PI*YC/400)*100/1000;
+}
+
+
+void feedback_speed(void){//速度P制御
+	
 }
 
 int32_t Get_Encoder(ch_t x){
@@ -207,6 +238,9 @@ int32_t Get_Encoder(ch_t x){
 void encoder_task(void *argument){
 	while(1){
 		update_encoder();
+		#ifdef SPEED_CONTROL
+		feedback_speed();
+		#endif
 		osDelay(10);
 	}
 }
@@ -219,23 +253,32 @@ void motor_task(void *argument){
 		}
 		if(EMERGENCY==false){
 			serial.string("[Motor_Status] X:");
-			serial.putfloat(motor_receive_data[motor_x_data]);
-			serial.string(",Y:");
-			serial.putfloat(motor_receive_data[motor_y_data]);
-			serial.string(",Turn:");
-			serial.putfloat(motor_receive_data[motor_turnspeed_data]);
-			serial.string(",Brake:");
+			serial.putfloat(target_speed.vx);
+			serial.string("m/s,Y:");
+			serial.putfloat(target_speed.vy);
+			serial.string("m/s,Turn:");
+			serial.putfloat(target_speed.theta);
+			serial.string("°/s,Brake:");
 			serial.putint(((int16_t)motor_receive_data[motor_bb_data]>>9)&0x01);
-			serial.string(",Motor:");
+
+
+			serial.string(",");
+			serial.string(MOTOR_BATTERY_TYPE[MOTOR_BATTERY_TYPE_NUM]);
+			serial.string(":");
 			serial.putfloat(LiPo_boltage);
 			serial.string("V,Logic:");
 			serial.putfloat(Logic_boltage);
 			serial.string("V\n\r");
-			/*serial.string("[Encoder_Status] X:");
+			serial.string("[Encoder_Status] X:");
 			serial.putint(X_count);
 			serial.string(",Y:");
 			serial.putint(Y_count);
-			serial.string("\n\r");*/
+
+			serial.string("\n\r[Speed_Status] X:");
+			serial.putfloat(current_speed.vx);
+			serial.string("m/s ,Y:");
+			serial.putfloat(current_speed.vy);
+			serial.string("m/s\n\r");
 			osThreadSuspend(EMERGENCYHandle);
 			HAL_GPIO_WritePin(FET_RED_GPIO_Port,FET_RED_Pin,GPIO_PIN_RESET);
 		}
@@ -248,15 +291,24 @@ void motor_task(void *argument){
 			HAL_GPIO_TogglePin(FET_LEFT_GPIO_Port,FET_LEFT_Pin);
 			#endif
 			serial.string("\e[43m\e[31m [EMERGENCY STOP]");
-			serial.string("LiPo:");
+			serial.string(MOTOR_BATTERY_TYPE[MOTOR_BATTERY_TYPE_NUM]);
+			serial.string(":");
 			serial.putfloat(LiPo_boltage);
 			serial.string("V\e[0m\n\r");
 		}
 		if(EMERGENCY==false&&((motor_receive_data[motor_x_data]==0 && motor_receive_data[motor_y_data]==0)&&motor_receive_data[motor_turnspeed_data]==0)){
 			HAL_GPIO_WritePin(FET_RED_GPIO_Port, FET_RED_Pin, GPIO_PIN_SET);
+			/*if(osThreadGetState(ledHandle)==osThreadRunning){
+				osThreadSuspend(ledHandle);
+			}
+			HAL_GPIO_WritePin(FET_LEFT_GPIO_Port, FET_LEFT_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(FET_RIGHT_GPIO_Port, FET_RIGHT_Pin, GPIO_PIN_RESET);*/
 		}
 		else if(EMERGENCY==false&&(motor_receive_data[motor_x_data]!=0 || motor_receive_data[motor_y_data]!=0)){
 			HAL_GPIO_WritePin(FET_RED_GPIO_Port, FET_RED_Pin, GPIO_PIN_RESET);
+			/*if(osThreadGetState(ledHandle)==osThreadBlocked){
+				osThreadResume(ledHandle);
+			}*/
 		}
 		osDelay(100);
 	}

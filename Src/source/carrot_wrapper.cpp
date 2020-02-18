@@ -34,13 +34,14 @@ void init_carrot(void){
 	HAL_GPIO_WritePin(FET_BAR_GPIO_Port,FET_BAR_Pin,GPIO_PIN_SET);
 	#endif
 
-	init_adc();
-
 	HAL_GPIO_WritePin(BUZZER1_GPIO_Port,BUZZER1_Pin,GPIO_PIN_SET);
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1,0);
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
 	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2,0);
+
+	init_adc();
+
 	//front.set_all_color(0xFF, 0, 0);
 	//front.update();
 	motor::init();
@@ -53,5 +54,22 @@ void init_carrot(void){
 			EMERGENCY=true;
 			motor::brake();
 	}
+	serial.string("MOTOR_BATTERY_TYPE:");
+	serial.string(MOTOR_BATTERY_TYPE[MOTOR_BATTERY_TYPE_NUM]);
+	serial.string(" WARNING_VOLTAGE:");
+	serial.putfloat(LIPO_WARNING_VOLTAGE);
+	serial.string("V\n\r");
 	return;
 }
+
+
+void led_task(void *argument){
+	while(1){
+
+		osThreadSuspend(ledHandle);
+		HAL_GPIO_TogglePin(FET_LEFT_GPIO_Port, FET_LEFT_Pin);
+		HAL_GPIO_TogglePin(FET_RIGHT_GPIO_Port, FET_RIGHT_Pin);
+		osDelay(300);
+	}
+}
+
